@@ -16,19 +16,60 @@ jobs:
 
       - name: Build
         run: |
+          # Clean
+          rm -rf build/ ~/Library/Developer/Xcode/DerivedData/VibeTok* 2>/dev/null || true
+
+          # Show available SDKs
+          xcodebuild -showsdks 2>&1 | grep -i ios || true
+
+          # Build for iOS device (arm64), not simulator
           xcodebuild -project VibeTok.xcodeproj \
             -scheme VibeTok \
             -configuration Release \
+            -sdk iphoneos \
+            -arch arm64 \
             -destination "generic/platform=iOS" \
             -archivePath build/VibeTok.xcarchive \
-            archive CODE_SIGNING_ALLOWED=NO
+            archive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            ONLY_ACTIVE_ARCH=NO \
+            ARCHS="arm64" \
+            VALID_ARCHS="arm64" \
+            ENABLE_BITCODE=NO \
+            SWIFT_VERSION=5.0
+
+      - name: Verify Build
+        run: |
+          APP_PATH="build/VibeTok.xcarchive/Products/Applications/VibeTok.app"
+          echo "=== App contents ==="
+          ls -laR "$APP_PATH"
+          echo ""
+          echo "=== Binary architectures ==="
+          lipo -info "$APP_PATH/VibeTok" || file "$APP_PATH/VibeTok"
+          echo ""
+          echo "=== Linked frameworks (Swift) ==="
+          otool -L "$APP_PATH/VibeTok" | grep -i swift | head -10
+          echo ""
+          echo "=== Embedded frameworks ==="
+          ls -la "$APP_PATH/Frameworks/" 2>/dev/null || echo "No embedded Frameworks"
 
       - name: Create IPA
         run: |
           mkdir -p Payload
-          cp -r build/VibeTok.xcarchive/Products/Applications/VibeTok.app Payload/
-          zip -r VibeTokHD.ipa Payload
+          APP_PATH="build/VibeTok.xcarchive/Products/Applications/VibeTok.app"
+
+          # Copy app
+          cp -r "$APP_PATH" Payload/VibeTok.app
+
+          # Adhoc sign (placeholder for eSign)
+          codesign --force --sign - --timestamp=none --deep Payload/VibeTok.app 2>&1 || true
+
+          # Zip
+          cd Payload && zip -r ../VibeTokHD.ipa . && cd ..
           ls -la VibeTokHD.ipa
+          echo "=== Final size ==="
+          du -h VibeTokHD.ipa
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
