@@ -23,7 +23,6 @@ jobs:
           rm -rf build/ ~/Library/Developer/Xcode/DerivedData/VibeTok* 2>/dev/null || true
 
           # Use BUILD (not archive) - gives us .app directly with Frameworks embedded
-          set -o pipefail
           xcodebuild -project VibeTok.xcodeproj \
             -scheme VibeTok \
             -configuration Release \
@@ -39,19 +38,14 @@ jobs:
             SWIFT_VERSION=5.0 \
             SUPPORTED_PLATFORMS="iphoneos" \
             TARGETED_DEVICE_FAMILY="1,2" \
-            build 2>&1 | tail -30
+            IPHONEOS_DEPLOYMENT_TARGET=15.0 \
+            build
 
           # Find the built app
           APP_PATH=$(find build/DerivedData -name "VibeTok.app" -type d | head -1)
           echo "APP_PATH=$APP_PATH"
-          ls -la "$APP_PATH"
-          echo ""
           echo "=== Embedded Frameworks ==="
           ls -la "$APP_PATH/Frameworks/" 2>/dev/null || echo "No Frameworks dir"
-          echo ""
-          echo "=== Binary ==="
-          file "$APP_PATH/VibeTok"
-          otool -L "$APP_PATH/VibeTok" | head -20
 
       - name: Verify Build
         run: |
