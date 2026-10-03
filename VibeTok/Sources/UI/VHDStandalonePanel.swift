@@ -17,7 +17,7 @@ final class VHDStandalonePanel: UIWindow {
     private let stopOnEndSwitch = UISwitch()
     private var panelTouchOffset: CGPoint = .zero
 
-    init(windowScene: UIWindowScene) {
+    override init(windowScene: UIWindowScene) {
         let screen = windowScene.screen.bounds
         super.init(windowScene: windowScene)
         self.frame = CGRect(x: screen.width - 60, y: 100, width: 50, height: 50)
@@ -27,7 +27,7 @@ final class VHDStandalonePanel: UIWindow {
         observe()
     }
 
-    required init?(coder: NSCoder) { fatalError() }
+    required init?(coder: NSCoder) { fatalError("init(coder:) not supported") }
 
     private func buildUI() {
         mainButton.frame = bounds
