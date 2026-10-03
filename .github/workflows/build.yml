@@ -15,7 +15,6 @@ jobs:
         run: sudo xcode-select -s /Applications/Xcode_15.4.app
 
       - name: Build
-        working-directory: VibeTokStandalone
         run: |
           xcodebuild -project VibeTok.xcodeproj \
             -scheme VibeTok \
@@ -25,7 +24,6 @@ jobs:
             archive CODE_SIGNING_ALLOWED=NO
 
       - name: Create IPA
-        working-directory: VibeTokStandalone
         run: |
           mkdir -p Payload
           cp -r build/VibeTok.xcarchive/Products/Applications/VibeTok.app Payload/
@@ -36,4 +34,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: VibeTokHD-Standalone-IPA
-          path: VibeTokStandalone/VibeTokHD.ipa
+          path: VibeTokHD.ipa
