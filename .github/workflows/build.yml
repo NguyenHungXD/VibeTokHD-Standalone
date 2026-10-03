@@ -65,20 +65,43 @@ jobs:
 
       - name: Create IPA
         run: |
-          mkdir -p Payload
           APP_PATH="build/VibeTok.xcarchive/Products/Applications/VibeTok.app"
 
-          # Copy app
+          # Show what was built
+          echo "=== Built app contents ==="
+          find "$APP_PATH" -type f | head -20
+
+          # Copy app to a clean location
+          rm -rf Payload
+          mkdir -p Payload
           cp -r "$APP_PATH" Payload/VibeTok.app
 
-          # Adhoc sign (placeholder for eSign)
+          # Embed Swift standard libs (defensive - in case xcodebuild didn't)
+          SWIFT_LIBS_DIR="/Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/iphoneos"
+          if [ -d "$SWIFT_LIBS_DIR" ]; then
+            mkdir -p Payload/VibeTok.app/Frameworks
+            cp -n "$SWIFT_LIBS_DIR"/*.dylib Payload/VibeTok.app/Frameworks/ 2>/dev/null || true
+            echo "Embedded Swift libs: $(ls Payload/VibeTok.app/Frameworks/ | wc -l)"
+          else
+            echo "Swift lib dir not found: $SWIFT_LIBS_DIR"
+            find /Applications/Xcode*.app/Contents/Developer/Toolchains -name "libswiftCore.dylib" 2>/dev/null | head -3
+          fi
+
+          # Adhoc sign
           codesign --force --sign - --timestamp=none --deep Payload/VibeTok.app 2>&1 || true
+
+          # Verify
+          codesign -dvv Payload/VibeTok.app 2>&1 | head -10
 
           # Zip
           cd Payload && zip -r ../VibeTokHD.ipa . && cd ..
+
+          # Stats
+          echo "=== Final stats ==="
           ls -la VibeTokHD.ipa
-          echo "=== Final size ==="
-          du -h VibeTokHD.ipa
+          du -sh VibeTokHD.ipa
+          du -sh Payload/VibeTok.app
+          find Payload/VibeTok.app -type f -exec ls -la {} \;
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
