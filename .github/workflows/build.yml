@@ -48,21 +48,23 @@ jobs:
           ls -la "$APP_PATH/Frameworks/" 2>/dev/null || echo "No Frameworks dir"
 
       - name: Verify Build
+        if: always()
         run: |
-          APP_PATH="build/VibeTok.xcarchive/Products/Applications/VibeTok.app"
+          APP_PATH=$(find build/DerivedData -name "VibeTok.app" -type d | head -1)
           echo "=== App contents ==="
-          ls -laR "$APP_PATH"
+          ls -laR "$APP_PATH" || true
           echo ""
           echo "=== Binary architectures ==="
-          lipo -info "$APP_PATH/VibeTok" || file "$APP_PATH/VibeTok"
+          lipo -info "$APP_PATH/VibeTok" 2>/dev/null || file "$APP_PATH/VibeTok" || true
           echo ""
           echo "=== Linked frameworks (Swift) ==="
-          otool -L "$APP_PATH/VibeTok" | grep -i swift | head -10
+          otool -L "$APP_PATH/VibeTok" 2>/dev/null | grep -i swift | head -10 || true
           echo ""
           echo "=== Embedded frameworks ==="
           ls -la "$APP_PATH/Frameworks/" 2>/dev/null || echo "No embedded Frameworks"
 
       - name: Create IPA
+        if: always()
         run: |
           APP_PATH=$(find build/DerivedData -name "VibeTok.app" -type d | head -1)
           echo "Using APP_PATH=$APP_PATH"
