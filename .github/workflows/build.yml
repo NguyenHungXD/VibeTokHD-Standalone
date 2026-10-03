@@ -67,22 +67,23 @@ jobs:
           APP_PATH=$(find build/DerivedData -name "VibeTok.app" -type d | head -1)
           echo "Using APP_PATH=$APP_PATH"
 
-          # If Frameworks dir doesn't exist, manually add Swift libs
-          if [ ! -d "$APP_PATH/Frameworks" ] || [ -z "$(ls -A $APP_PATH/Frameworks 2>/dev/null)" ]; then
-            echo "No Frameworks - manually embedding Swift libs"
-            SWIFT_LIBS_DIR="/Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/iphoneos"
-            if [ ! -d "$SWIFT_LIBS_DIR" ]; then
-              SWIFT_LIBS_DIR=$(find /Applications/Xcode*.app -name "libswiftCore.dylib" -path "*iphoneos*" 2>/dev/null | head -1 | xargs dirname)
-            fi
-            if [ -d "$SWIFT_LIBS_DIR" ]; then
-              echo "Swift libs at: $SWIFT_LIBS_DIR"
-              mkdir -p "$APP_PATH/Frameworks"
-              cp -R "$SWIFT_LIBS_DIR"/. "$APP_PATH/Frameworks/"
-              echo "Copied $(ls $APP_PATH/Frameworks/ | wc -l) libs"
-            fi
+          # Always manually embed Swift libs (Xcode 15 with --filter-for-swift-os may skip)
+          SWIFT_LIBS_DIR="/Applications/Xcode_15.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/iphoneos"
+          if [ ! -d "$SWIFT_LIBS_DIR" ]; then
+            SWIFT_LIBS_DIR=$(find /Applications/Xcode*.app -name "libswiftCore.dylib" -path "*iphoneos*" 2>/dev/null | head -1 | xargs dirname)
+          fi
+          if [ -d "$SWIFT_LIBS_DIR" ]; then
+            echo "Swift libs source: $SWIFT_LIBS_DIR"
+            echo "Found $(ls $SWIFT_LIBS_DIR | wc -l) libs"
+            mkdir -p "$APP_PATH/Frameworks"
+            cp -R "$SWIFT_LIBS_DIR"/. "$APP_PATH/Frameworks/"
+            echo "Embedded $(ls $APP_PATH/Frameworks/ | wc -l) Swift libs"
+          else
+            echo "Swift lib dir not found, trying alternate locations..."
+            find /Applications/Xcode*.app -name "libswiftCore.dylib" 2>/dev/null | head -5
           fi
 
-          # Copy app to clean location
+          # Copy app
           rm -rf Payload
           mkdir -p Payload
           cp -R "$APP_PATH" Payload/VibeTok.app
@@ -90,9 +91,9 @@ jobs:
           # Adhoc sign
           codesign --force --sign - --timestamp=none --deep Payload/VibeTok.app 2>&1 | head -5
 
-          # Verify
-          echo "=== After embed ==="
-          find Payload/VibeTok.app -type f | head -20
+          # Final check
+          echo "=== Final app ==="
+          find Payload/VibeTok.app -type f | head -30
           du -sh Payload/VibeTok.app
 
           # Zip
