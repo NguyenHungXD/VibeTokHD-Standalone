@@ -27,7 +27,6 @@ jobs:
             -scheme VibeTok \
             -configuration Release \
             -sdk iphoneos \
-            -arch arm64 \
             -destination "generic/platform=iOS" \
             -archivePath build/VibeTok.xcarchive \
             archive \
