@@ -1,0 +1,39 @@
+name: Build Standalone
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app
+
+      - name: Build
+        working-directory: VibeTokStandalone
+        run: |
+          xcodebuild -project VibeTok.xcodeproj \
+            -scheme VibeTok \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath build/VibeTok.xcarchive \
+            archive CODE_SIGNING_ALLOWED=NO
+
+      - name: Create IPA
+        working-directory: VibeTokStandalone
+        run: |
+          mkdir -p Payload
+          cp -r build/VibeTok.xcarchive/Products/Applications/VibeTok.app Payload/
+          zip -r VibeTokHD.ipa Payload
+          ls -la VibeTokHD.ipa
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VibeTokHD-Standalone-IPA
+          path: VibeTokStandalone/VibeTokHD.ipa
